@@ -68,7 +68,7 @@ func main() {
 				parsed = parser.Parse(rawRecords)
 				if parsed != nil {
 					fmt.Printf("Matched parser %v\n", parser.Name())
-					dstPath := path.Join(outputDir, parser.Name()+".csv")
+					dstPath := path.Join(outputDir, parser.Name()+"_"+file.Name())
 					writeRecordsToCsv(parsed, dstPath)
 					fmt.Printf("Write csv to %v\n", dstPath)
 					break

@@ -22,7 +22,7 @@ func (p Epos) Parse(records [][]string) []YnabRecord {
 		parsed = append(parsed, YnabRecord{
 			date:   convertDate("2006年01月02日", "2006-01-02", row[1]),
 			amount: flipSign(row[5]),
-			memo:   row[2],
+			payee:  row[2],
 		})
 	}
 	return parsed

@@ -18,7 +18,7 @@ func (p View) Parse(records [][]string) []YnabRecord {
 		parsed = append(parsed, YnabRecord{
 			date:   convertDate("2006/01/02", "2006-01-02", row[0]),
 			amount: flipSign(row[4]),
-			memo:   row[1],
+			payee:  row[1],
 		})
 	}
 	return parsed

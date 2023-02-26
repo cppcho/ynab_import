@@ -27,7 +27,7 @@ func writeRecordsToCsv(records []YnabRecord, outputPath string) {
 		if record.date == "" || record.amount == "" {
 			continue
 		}
-		err = w.Write([]string{record.date, record.payee, record.memo, record.amount})
+		err = w.Write([]string{record.date, record.payee, record.memo, flipSign(flipSign(record.amount))})
 	}
 	if err != nil {
 		panic(err)

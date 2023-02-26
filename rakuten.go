@@ -19,7 +19,7 @@ func (p Rakuten) Parse(records [][]string) []YnabRecord {
 		parsed = append(parsed, YnabRecord{
 			date:   convertDate("20060102", "2006-01-02", row[0]),
 			amount: row[1],
-			memo:   row[3],
+			payee:  row[3],
 		})
 	}
 	return parsed

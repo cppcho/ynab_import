@@ -23,7 +23,7 @@ func (p Smbc) Parse(records [][]string) []YnabRecord {
 		parsed = append(parsed, YnabRecord{
 			date:   convertDate("2006/1/2", "2006-01-02", row[0]),
 			amount: amount,
-			memo:   row[3],
+			payee:  row[3],
 		})
 	}
 	return parsed

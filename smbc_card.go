@@ -24,7 +24,7 @@ func (p SmbcCard) Parse(records [][]string) []YnabRecord {
 		parsed = append(parsed, YnabRecord{
 			date:   convertDate("2006/1/2", "2006-01-02", row[0]),
 			amount: flipSign(row[7]),
-			memo:   row[1],
+			payee:  row[1],
 		})
 	}
 	return parsed
