@@ -7,6 +7,7 @@ A Go-based CSV conversion tool that transforms bank and credit card transaction 
 - **9 Financial Institution Support** - Supports major Japanese banks and credit cards
 - **Automatic Encoding Detection** - Handles both UTF-8 and Shift_JIS encoded CSVs
 - **Batch Processing** - Processes all CSV files in a directory at once
+- **Watch Mode** - Continuously monitor directory for new or changed CSV files
 - **Automatic Parser Matching** - Identifies the correct parser based on CSV headers
 - **Timestamped Output** - Organizes converted files in dated directories
 - **YNAB-Ready Format** - Outputs standardized CSV format for direct YNAB import
@@ -84,12 +85,40 @@ export CSV_DIR=~/Documents/ynab_ready
 ./bin/ynab_import
 ```
 
+### Watch Mode
+
+Watch mode allows the tool to continuously monitor the input directory for new or changed CSV files and automatically convert them:
+
+```bash
+# Start watch mode
+./bin/ynab_import -w
+
+# Or with custom directories
+./bin/ynab_import -w -input ~/Documents/bank_exports -output ~/Documents/ynab_ready
+
+# Alternative flag syntax
+./bin/ynab_import --watch
+```
+
+In watch mode, the tool will:
+1. Process all existing CSV files in the input directory on startup
+2. Continue running and monitor the directory for changes
+3. Automatically process any new CSV files added to the directory
+4. Automatically re-process CSV files when they are modified
+5. Press `Ctrl+C` to stop watching
+
+This is useful for scenarios like:
+- **Automated workflows**: Set up watch mode to run as a background service
+- **Continuous imports**: Automatically convert files as they're downloaded
+- **Real-time processing**: Process transactions as soon as bank exports are saved
+
 ### Command-Line Flags
 
 | Flag | Environment Variable | Default | Description |
 |------|---------------------|---------|-------------|
 | `-input` | `CSV_DIR_IN` | `~/Downloads` | Directory containing input CSV files |
 | `-output` | `CSV_DIR` | `~/Desktop` | Base directory for output files |
+| `-w`, `--watch` | - | `false` | Watch mode: continuously monitor input directory for new or changed CSV files |
 
 ## Output Format
 
