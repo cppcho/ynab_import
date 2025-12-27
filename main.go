@@ -3,11 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/fsnotify/fsnotify"
 )
 
 type YnabRecord struct {
@@ -71,71 +74,15 @@ func expandHomeDir(path string) string {
 	return homeDir + path[1:]
 }
 
-func main() {
-	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "\nError: %v\n", err)
-		os.Exit(1)
-	}
-}
+func processFile(filePath, outputDir string) error {
+	fmt.Printf("Parsing %v ...", filePath)
 
-func run() error {
-	// Define CLI flags with environment variable defaults
-	inputDir := flag.String("input", getEnvOrDefault("CSV_DIR_IN", "~/Downloads"), "Input directory containing CSV files (env: CSV_DIR_IN, default: ~/Downloads)")
-	outputDir := flag.String("output", getEnvOrDefault("CSV_DIR", "~/Desktop"), "Output directory for converted CSV files (env: CSV_DIR, default: ~/Desktop)")
-	flag.Parse()
-
-	// Expand ~ in paths
-	*inputDir = expandHomeDir(*inputDir)
-	*outputDir = expandHomeDir(*outputDir)
-
-	files, err := os.ReadDir(*inputDir)
-	if err != nil {
-		return fmt.Errorf("failed to read input directory %q: %w", *inputDir, err)
-	}
-
-	// Create output dir (e.g. ~/Desktop/20060102_output)
-	now := time.Now().UTC().Format("20060102")
-	timestampedOutputDir := path.Join(*outputDir, now+"_output")
-	if err := os.MkdirAll(timestampedOutputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory %q: %w", timestampedOutputDir, err)
-	}
-
-	// Track errors but continue processing
-	var errors []error
-	successCount := 0
-
-	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
-			srcPath := path.Join(*inputDir, file.Name())
-			fmt.Printf("Parsing %v ...", srcPath)
-
-			if err := processCSV(srcPath, timestampedOutputDir, file.Name()); err != nil {
-				fmt.Printf(" ERROR: %v\n", err)
-				errors = append(errors, fmt.Errorf("%s: %w", file.Name(), err))
-			} else {
-				successCount++
-			}
-		}
-	}
-
-	// Report summary
-	if len(errors) > 0 {
-		fmt.Printf("\nCompleted with %d success(es) and %d error(s)\n", successCount, len(errors))
-		return fmt.Errorf("encountered %d error(s) during processing", len(errors))
-	}
-
-	if successCount > 0 {
-		fmt.Printf("\nSuccessfully processed %d file(s)\n", successCount)
-	}
-	return nil
-}
-
-func processCSV(srcPath, outputDir, fileName string) error {
-	rawRecords, err := readCsvToRawRecords(srcPath)
+	rawRecords, err := readCsvToRawRecords(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read CSV: %w", err)
 	}
 
+	fileName := path.Base(filePath)
 	for _, parser := range parsers {
 		parsed, err := parser.Parse(rawRecords)
 
@@ -163,6 +110,134 @@ func processCSV(srcPath, outputDir, fileName string) error {
 
 	fmt.Println("No matched parser")
 	return nil // Not an error - just no parser matched
+}
+
+func processDirectory(inputDir, outputDir string) error {
+	files, err := os.ReadDir(inputDir)
+	if err != nil {
+		return fmt.Errorf("failed to read input directory %q: %w", inputDir, err)
+	}
+
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
+			srcPath := path.Join(inputDir, file.Name())
+			if err := processFile(srcPath, outputDir); err != nil {
+				log.Printf("Error processing %s: %v", srcPath, err)
+			}
+		}
+	}
+	return nil
+}
+
+func watchMode(inputDir, outputDir string) error {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return fmt.Errorf("failed to create watcher: %w", err)
+	}
+	defer watcher.Close()
+
+	// Process existing files first
+	fmt.Println("Processing existing files...")
+	if err := processDirectory(inputDir, outputDir); err != nil {
+		return err
+	}
+
+	// Start watching
+	err = watcher.Add(inputDir)
+	if err != nil {
+		return fmt.Errorf("failed to watch directory: %w", err)
+	}
+
+	fmt.Printf("Watching %s for new or changed CSV files... (Press Ctrl+C to stop)\n", inputDir)
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return nil
+			}
+			// Process on write or create events
+			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
+				if strings.HasSuffix(event.Name, ".csv") {
+					fmt.Printf("\nDetected change: %s\n", event.Name)
+					if err := processFile(event.Name, outputDir); err != nil {
+						log.Printf("Error processing %s: %v", event.Name, err)
+					}
+				}
+			}
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return nil
+			}
+			log.Printf("Watcher error: %v", err)
+		}
+	}
+}
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "\nError: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	// Define CLI flags with environment variable defaults
+	inputDir := flag.String("input", getEnvOrDefault("CSV_DIR_IN", "~/Downloads"), "Input directory containing CSV files (env: CSV_DIR_IN, default: ~/Downloads)")
+	outputDir := flag.String("output", getEnvOrDefault("CSV_DIR", "~/Desktop"), "Output directory for converted CSV files (env: CSV_DIR, default: ~/Desktop)")
+	watch := flag.Bool("w", false, "Watch mode: continuously monitor input directory for new or changed CSV files")
+	flag.BoolVar(watch, "watch", false, "Watch mode: continuously monitor input directory for new or changed CSV files")
+	flag.Parse()
+
+	// Expand ~ in paths
+	*inputDir = expandHomeDir(*inputDir)
+	*outputDir = expandHomeDir(*outputDir)
+
+	// Create output dir (e.g. ~/Desktop/20060102_output)
+	now := time.Now().UTC().Format("20060102")
+	timestampedOutputDir := path.Join(*outputDir, now+"_output")
+	if err := os.MkdirAll(timestampedOutputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory %q: %w", timestampedOutputDir, err)
+	}
+
+	if *watch {
+		// Watch mode
+		return watchMode(*inputDir, timestampedOutputDir)
+	}
+
+	// One-time processing mode
+	files, err := os.ReadDir(*inputDir)
+	if err != nil {
+		return fmt.Errorf("failed to read input directory %q: %w", *inputDir, err)
+	}
+
+	// Track errors but continue processing
+	var errors []error
+	successCount := 0
+
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
+			srcPath := path.Join(*inputDir, file.Name())
+
+			if err := processFile(srcPath, timestampedOutputDir); err != nil {
+				fmt.Printf(" ERROR: %v\n", err)
+				errors = append(errors, fmt.Errorf("%s: %w", file.Name(), err))
+			} else {
+				successCount++
+			}
+		}
+	}
+
+	// Report summary
+	if len(errors) > 0 {
+		fmt.Printf("\nCompleted with %d success(es) and %d error(s)\n", successCount, len(errors))
+		return fmt.Errorf("encountered %d error(s) during processing", len(errors))
+	}
+
+	if successCount > 0 {
+		fmt.Printf("\nSuccessfully processed %d file(s)\n", successCount)
+	}
+	return nil
 }
 
 // 2006-01-02T15:04:05
