@@ -1,8 +1,6 @@
 module cppcho.com/ynab_import
 
-go 1.24.0
-
-toolchain go1.24.7
+go 1.25
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0
