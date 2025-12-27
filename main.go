@@ -22,7 +22,7 @@ type YnabRecord struct {
 
 type Parser interface {
 	Name() string
-	Parse(records [][]string) []YnabRecord
+	Parse(records [][]string) ([]YnabRecord, error)
 }
 
 var parsers []Parser = []Parser{Smbc{}, Rakuten{}, Epos{}, View{}, Saison{}, RakutenCard{}, Sbi{}, SmbcCard{}, SmbcCard2{}}
@@ -82,29 +82,40 @@ func processFile(filePath, outputDir string) error {
 		return fmt.Errorf("failed to read CSV: %w", err)
 	}
 
-	var parsed []YnabRecord
+	fileName := path.Base(filePath)
 	for _, parser := range parsers {
-		parsed = parser.Parse(rawRecords)
-		if parsed != nil {
-			fmt.Printf("Matched parser %v\n", parser.Name())
-			fileName := path.Base(filePath)
-			dstPath := path.Join(outputDir, parser.Name()+"_"+fileName)
-			err = writeRecordsToCsv(parsed, dstPath)
-			if err != nil {
-				return fmt.Errorf("failed to write CSV: %w", err)
-			}
-			fmt.Printf("Write csv to %v\n", dstPath)
-			return nil
+		parsed, err := parser.Parse(rawRecords)
+
+		// Error occurred during parsing
+		if err != nil {
+			return fmt.Errorf("parser %s failed: %w", parser.Name(), err)
 		}
+
+		// No match (not this parser's format)
+		if parsed == nil {
+			continue
+		}
+
+		// Match found - write output
+		fmt.Printf("Matched parser %v\n", parser.Name())
+		dstPath := path.Join(outputDir, parser.Name()+"_"+fileName)
+
+		if err := writeRecordsToCsv(parsed, dstPath); err != nil {
+			return fmt.Errorf("failed to write output: %w", err)
+		}
+
+		fmt.Printf("Write csv to %v\n", dstPath)
+		return nil // Success
 	}
+
 	fmt.Println("No matched parser")
-	return nil
+	return nil // Not an error - just no parser matched
 }
 
 func processDirectory(inputDir, outputDir string) error {
 	files, err := os.ReadDir(inputDir)
 	if err != nil {
-		return fmt.Errorf("failed to read input directory: %w", err)
+		return fmt.Errorf("failed to read input directory %q: %w", inputDir, err)
 	}
 
 	for _, file := range files {
@@ -164,6 +175,13 @@ func watchMode(inputDir, outputDir string) error {
 }
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "\nError: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	// Define CLI flags with environment variable defaults
 	inputDir := flag.String("input", getEnvOrDefault("CSV_DIR_IN", "~/Downloads"), "Input directory containing CSV files (env: CSV_DIR_IN, default: ~/Downloads)")
 	outputDir := flag.String("output", getEnvOrDefault("CSV_DIR", "~/Desktop"), "Output directory for converted CSV files (env: CSV_DIR, default: ~/Desktop)")
@@ -178,22 +196,48 @@ func main() {
 	// Create output dir (e.g. ~/Desktop/20060102_output)
 	now := time.Now().UTC().Format("20060102")
 	timestampedOutputDir := path.Join(*outputDir, now+"_output")
-	err := os.MkdirAll(timestampedOutputDir, 0755)
-	if err != nil {
-		log.Fatalf("Failed to create output directory: %v", err)
+	if err := os.MkdirAll(timestampedOutputDir, 0755); err != nil {
+		return fmt.Errorf("failed to create output directory %q: %w", timestampedOutputDir, err)
 	}
 
 	if *watch {
 		// Watch mode
-		if err := watchMode(*inputDir, timestampedOutputDir); err != nil {
-			log.Fatalf("Watch mode error: %v", err)
-		}
-	} else {
-		// One-time processing mode
-		if err := processDirectory(*inputDir, timestampedOutputDir); err != nil {
-			log.Fatalf("Processing error: %v", err)
+		return watchMode(*inputDir, timestampedOutputDir)
+	}
+
+	// One-time processing mode
+	files, err := os.ReadDir(*inputDir)
+	if err != nil {
+		return fmt.Errorf("failed to read input directory %q: %w", *inputDir, err)
+	}
+
+	// Track errors but continue processing
+	var errors []error
+	successCount := 0
+
+	for _, file := range files {
+		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
+			srcPath := path.Join(*inputDir, file.Name())
+
+			if err := processFile(srcPath, timestampedOutputDir); err != nil {
+				fmt.Printf(" ERROR: %v\n", err)
+				errors = append(errors, fmt.Errorf("%s: %w", file.Name(), err))
+			} else {
+				successCount++
+			}
 		}
 	}
+
+	// Report summary
+	if len(errors) > 0 {
+		fmt.Printf("\nCompleted with %d success(es) and %d error(s)\n", successCount, len(errors))
+		return fmt.Errorf("encountered %d error(s) during processing", len(errors))
+	}
+
+	if successCount > 0 {
+		fmt.Printf("\nSuccessfully processed %d file(s)\n", successCount)
+	}
+	return nil
 }
 
 // 2006-01-02T15:04:05

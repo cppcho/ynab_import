@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"reflect"
 )
 
@@ -10,9 +12,14 @@ func (p Smbc) Name() string {
 	return "smbc"
 }
 
-func (p Smbc) Parse(records [][]string) []YnabRecord {
+func (p Smbc) Parse(records [][]string) ([]YnabRecord, error) {
+	// Handle empty records
+	if len(records) == 0 {
+		return nil, nil // Not my format
+	}
+
 	if !reflect.DeepEqual(records[0], []string{"年月日", "お引出し", "お預入れ", "お取り扱い内容", "残高", "メモ", "ラベル"}) {
-		return nil
+		return nil, nil
 	}
 	parsed := make([]YnabRecord, 0)
 	for _, row := range records[1:] {
@@ -22,7 +29,9 @@ func (p Smbc) Parse(records [][]string) []YnabRecord {
 		}
 		date, err := convertDate("2006/1/2", "2006-01-02", row[0])
 		if err != nil {
-			panic(err)
+			// Skip invalid row with warning (like epos.go)
+			fmt.Fprintf(os.Stderr, "Warning: skipping row with invalid date: %v\n", err)
+			continue
 		}
 		parsed = append(parsed, YnabRecord{
 			date:   date,
@@ -30,5 +39,5 @@ func (p Smbc) Parse(records [][]string) []YnabRecord {
 			payee:  row[3],
 		})
 	}
-	return parsed
+	return parsed, nil
 }
