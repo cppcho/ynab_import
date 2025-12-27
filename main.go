@@ -25,12 +25,26 @@ type Parser interface {
 var parsers []Parser = []Parser{Smbc{}, Rakuten{}, Epos{}, View{}, Saison{}, RakutenCard{}, Sbi{}, SmbcCard{}, SmbcCard2{}}
 
 func flipSign(str string) string {
+	// Remove commas
 	str = strings.Replace(str, ",", "", -1)
+
+	// Handle empty strings
+	if str == "" {
+		return "0"
+	}
+
+	// Try parsing as integer
 	val, err := strconv.Atoi(str)
 	if err != nil {
-		fmt.Println("err: invalid str for flipSign " + str)
-		return str
+		// Try parsing as float and convert to int
+		floatVal, floatErr := strconv.ParseFloat(str, 64)
+		if floatErr != nil {
+			fmt.Printf("err: invalid str for flipSign: %q (not a number)\n", str)
+			return "0"
+		}
+		val = int(floatVal)
 	}
+
 	return strconv.Itoa(val * -1)
 }
 

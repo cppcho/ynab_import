@@ -16,9 +16,11 @@ func TestFlipSign(t *testing.T) {
 		{"zero", "0", "0"},
 		{"number with comma", "1,000", "-1000"},
 		{"number with multiple commas", "1,000,000", "-1000000"},
-		{"invalid input", "abc", "abc"}, // Returns original on error
-		{"empty string", "", ""},        // Returns empty on error
+		{"invalid input", "abc", "0"}, // Returns "0" on error
+		{"empty string", "", "0"},     // Returns "0" for empty strings
 		{"large number", "999999999", "-999999999"},
+		{"decimal number", "1234.56", "-1234"}, // Parses as float, truncates to int
+		{"negative decimal", "-789.99", "789"}, // Handles negative floats
 	}
 
 	for _, tt := range tests {

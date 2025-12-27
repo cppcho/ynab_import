@@ -25,9 +25,16 @@ func (p SmbcCard) Parse(records [][]string) []YnabRecord {
 		if err != nil {
 			panic(err)
 		}
+
+		// Use column 7 for amount, or column 6 if column 7 is empty (international transactions)
+		amount := row[7]
+		if amount == "" && len(row) > 6 {
+			amount = row[6]
+		}
+
 		parsed = append(parsed, YnabRecord{
 			date:   date,
-			amount: flipSign(row[7]),
+			amount: flipSign(amount),
 			payee:  row[1],
 		})
 	}

@@ -29,6 +29,49 @@ go mod download
 go mod tidy
 ```
 
+## Development Guidelines
+
+**CRITICAL: Code Quality Requirements**
+
+Before completing ANY code change, you MUST:
+
+1. **Update Tests**: Write or update tests for all code changes
+   ```bash
+   make test
+   ```
+   All tests must pass before considering the change complete.
+
+2. **Format Code**: Ensure code is properly formatted
+   ```bash
+   make fmt
+   ```
+
+3. **Run Linter**: Ensure no linting errors
+   ```bash
+   make lint
+   ```
+
+4. **Verify Build**: Ensure the project builds successfully
+   ```bash
+   make build
+   ```
+
+5. **Update Documentation**: Update this CLAUDE.md file if:
+   - Adding new features or functionality
+   - Changing architecture or design patterns
+   - Modifying development workflows
+   - Adding new commands or tools
+
+**Workflow for Every Change:**
+1. Make code changes
+2. Update relevant tests (or add new tests)
+3. Run `make test` and fix any failures
+4. Run `make fmt` to format code
+5. Run `make lint` and fix any issues
+6. Run `make build` to verify successful compilation
+7. Update CLAUDE.md if necessary
+8. Only then is the change complete
+
 ## Architecture
 
 ### Parser Plugin Pattern
@@ -70,6 +113,9 @@ The codebase uses a plugin-style architecture where each financial institution h
 3. Add parser to registry in main.go:27
 4. Handle institution-specific date formats and column mappings
 5. Use `flipSign()` if amount signs need reversing
+6. **Create test file** `<institution>_test.go` with comprehensive tests
+7. **Run quality checks**: `make test`, `make fmt`, `make lint`, `make build` (all must pass)
+8. **Update CLAUDE.md** if the parser introduces new patterns or special handling
 
 ### Important Details
 

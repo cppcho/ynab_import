@@ -107,3 +107,54 @@ func TestSmbcCard_Parse_Validation(t *testing.T) {
 		})
 	}
 }
+
+func TestSmbcCard_Parse_EmptyColumn7Fallback(t *testing.T) {
+	parser := SmbcCard{}
+
+	tests := []struct {
+		name           string
+		col6           string // Amount in column 6
+		col7           string // Amount in column 7 (may be empty)
+		expectedAmount string
+	}{
+		{
+			name:           "normal transaction with col7",
+			col6:           "2230",
+			col7:           "2230",
+			expectedAmount: "-2230", // flipSign applied
+		},
+		{
+			name:           "international transaction - empty col7",
+			col6:           "3198",
+			col7:           "",
+			expectedAmount: "-3198", // Should fall back to col6
+		},
+		{
+			name:           "both columns have values",
+			col6:           "1000",
+			col7:           "1000",
+			expectedAmount: "-1000", // Prefers col7
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockRecords := [][]string{
+				{"2025/12/5", "Test Merchant", "ご本人", "1回払い", "", "'26/01", tt.col6, tt.col7, "", "", "", "", ""},
+			}
+
+			result := parser.Parse(mockRecords)
+			if result == nil {
+				t.Fatal("Parse() returned nil for valid record")
+			}
+
+			if len(result) != 1 {
+				t.Fatalf("Parse() returned %d records, want 1", len(result))
+			}
+
+			if result[0].amount != tt.expectedAmount {
+				t.Errorf("amount = %q, want %q", result[0].amount, tt.expectedAmount)
+			}
+		})
+	}
+}
