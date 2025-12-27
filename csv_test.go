@@ -171,7 +171,7 @@ func TestWriteRecordsToCsv_SkipsEmptyDateOrAmount(t *testing.T) {
 
 	records := []YnabRecord{
 		{date: "2024-01-15", payee: "Valid", memo: "Valid", amount: "1000"},
-		{date: "", payee: "No Date", memo: "Should Skip", amount: "500"},         // Empty date - should skip
+		{date: "", payee: "No Date", memo: "Should Skip", amount: "500"},          // Empty date - should skip
 		{date: "2024-01-16", payee: "No Amount", memo: "Should Skip", amount: ""}, // Empty amount - should skip
 		{date: "2024-01-17", payee: "Valid", memo: "Valid", amount: "2000"},
 	}

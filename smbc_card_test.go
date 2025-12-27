@@ -80,9 +80,9 @@ func TestSmbcCard_Parse_Validation(t *testing.T) {
 	parser := SmbcCard{}
 
 	tests := []struct {
-		name      string
-		col2      string // records[0][2]
-		col5      string // records[0][5]
+		name       string
+		col2       string // records[0][2]
+		col5       string // records[0][5]
 		shouldPass bool
 	}{
 		{"ご本人 with quote prefix", "ご本人", "'26/01", true},
