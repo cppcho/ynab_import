@@ -28,25 +28,25 @@ func TestSmbc_Parse_ValidCSV(t *testing.T) {
 	}
 
 	// Should have 3 data rows (excluding header)
-	if len(result) != 3 {
-		t.Errorf("Parse() returned %d records, want 3", len(result))
+	if len(result.ValidRecords) != 3 {
+		t.Errorf("Parse() returned %d records, want 3", len(result.ValidRecords))
 	}
 
 	// Verify first record (deposit: お預入れ column has value)
-	if len(result) > 0 {
-		if result[0].date != "2025-12-26" {
-			t.Errorf("Record[0].date = %q, want %q", result[0].date, "2025-12-26")
+	if len(result.ValidRecords) > 0 {
+		if result.ValidRecords[0].date != "2025-12-26" {
+			t.Errorf("Record[0].date = %q, want %q", result.ValidRecords[0].date, "2025-12-26")
 		}
-		if result[0].amount != "31113" { // お預入れ value, not flipped
-			t.Errorf("Record[0].amount = %q, want %q", result[0].amount, "31113")
+		if result.ValidRecords[0].amount != "31113" { // お預入れ value, not flipped
+			t.Errorf("Record[0].amount = %q, want %q", result.ValidRecords[0].amount, "31113")
 		}
 	}
 
 	// Verify second record (withdrawal: お引出し column has value, should be flipped)
-	if len(result) > 1 {
+	if len(result.ValidRecords) > 1 {
 		// Original value is 23000 in お引出し, should be flipped to -23000
-		if result[1].amount != "-23000" {
-			t.Errorf("Record[1].amount = %q, want %q (flipSign applied)", result[1].amount, "-23000")
+		if result.ValidRecords[1].amount != "-23000" {
+			t.Errorf("Record[1].amount = %q, want %q (flipSign applied)", result.ValidRecords[1].amount, "-23000")
 		}
 	}
 }
@@ -97,8 +97,20 @@ func TestSmbc_Parse_InvalidDate(t *testing.T) {
 	}
 
 	// Should have 2 valid records (1 skipped)
-	if len(result) != 2 {
-		t.Errorf("Parse() returned %d records, want 2 (1 invalid row should be skipped)", len(result))
+	if len(result.ValidRecords) != 2 {
+		t.Errorf("Parse() returned %d valid records, want 2", len(result.ValidRecords))
+	}
+
+	// Should have 1 skipped row
+	if len(result.SkippedRows) != 1 {
+		t.Errorf("Parse() returned %d skipped rows, want 1", len(result.SkippedRows))
+	}
+
+	// Verify skipped row details
+	if len(result.SkippedRows) > 0 {
+		if result.SkippedRows[0].RowNumber != 3 {
+			t.Errorf("SkippedRow[0].RowNumber = %d, want 3", result.SkippedRows[0].RowNumber)
+		}
 	}
 }
 
@@ -119,9 +131,9 @@ func TestSmbc_Parse_DateConversion(t *testing.T) {
 		t.Fatal("Parse() returned nil")
 	}
 
-	if len(result) > 0 {
-		if result[0].date != "2025-01-05" {
-			t.Errorf("Date conversion failed: got %q, want %q", result[0].date, "2025-01-05")
+	if len(result.ValidRecords) > 0 {
+		if result.ValidRecords[0].date != "2025-01-05" {
+			t.Errorf("Date conversion failed: got %q, want %q", result.ValidRecords[0].date, "2025-01-05")
 		}
 	}
 }
@@ -151,12 +163,12 @@ func TestSmbc_Parse_AmountHandling(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Parse() unexpected error: %v", err)
 			}
-			if result == nil || len(result) == 0 {
+			if result == nil || len(result.ValidRecords) == 0 {
 				t.Fatal("Parse() returned nil or empty")
 			}
 
-			if result[0].amount != tt.expectedAmount {
-				t.Errorf("Amount = %q, want %q", result[0].amount, tt.expectedAmount)
+			if result.ValidRecords[0].amount != tt.expectedAmount {
+				t.Errorf("Amount = %q, want %q", result.ValidRecords[0].amount, tt.expectedAmount)
 			}
 		})
 	}

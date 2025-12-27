@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"strings"
 	"time"
 )
@@ -13,7 +11,7 @@ func (p SmbcCard2) Name() string {
 	return "smbc_card2"
 }
 
-func (p SmbcCard2) Parse(records [][]string) ([]YnabRecord, error) {
+func (p SmbcCard2) Parse(records [][]string) (*ParseResult, error) {
 	// Handle empty records
 	if len(records) == 0 {
 		return nil, nil // Not my format
@@ -26,22 +24,31 @@ func (p SmbcCard2) Parse(records [][]string) ([]YnabRecord, error) {
 		return nil, nil
 	}
 
-	parsed := make([]YnabRecord, 0)
-	for _, row := range records {
+	var validRecords []YnabRecord
+	var skippedRows []SkippedRow
+
+	for i, row := range records {
 		// if row[0] is in date format
 		if _, err := time.Parse("2006/1/2", row[0]); err == nil {
 			date, err := convertDate("2006/1/2", "2006-01-02", row[0])
 			if err != nil {
-				// Skip invalid row with warning (like epos.go)
-				fmt.Fprintf(os.Stderr, "Warning: skipping row with invalid date: %v\n", err)
+				skippedRows = append(skippedRows, SkippedRow{
+					RowNumber: i + 1, // +1 for 0-index (no header skip)
+					RawData:   row,
+					Reason:    err.Error(),
+				})
 				continue
 			}
-			parsed = append(parsed, YnabRecord{
+			validRecords = append(validRecords, YnabRecord{
 				date:   date,
 				amount: flipSign(row[5]),
 				payee:  row[1],
 			})
 		}
 	}
-	return parsed, nil
+
+	return &ParseResult{
+		ValidRecords: validRecords,
+		SkippedRows:  skippedRows,
+	}, nil
 }

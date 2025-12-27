@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"strconv"
@@ -20,9 +19,20 @@ type YnabRecord struct {
 	amount string
 }
 
+type ParseResult struct {
+	ValidRecords []YnabRecord
+	SkippedRows  []SkippedRow
+}
+
+type SkippedRow struct {
+	RowNumber int
+	RawData   []string
+	Reason    string
+}
+
 type Parser interface {
 	Name() string
-	Parse(records [][]string) ([]YnabRecord, error)
+	Parse(records [][]string) (*ParseResult, error)
 }
 
 var parsers []Parser = []Parser{Smbc{}, Rakuten{}, Epos{}, View{}, Saison{}, RakutenCard{}, Sbi{}, SmbcCard{}, SmbcCard2{}}
@@ -42,7 +52,7 @@ func flipSign(str string) string {
 		// Try parsing as float and convert to int
 		floatVal, floatErr := strconv.ParseFloat(str, 64)
 		if floatErr != nil {
-			fmt.Printf("err: invalid str for flipSign: %q (not a number)\n", str)
+			fmt.Fprintf(os.Stderr, "Error: invalid value for flipSign: %q (not a number)\n", str)
 			return "0"
 		}
 		val = int(floatVal)
@@ -97,18 +107,33 @@ func processFile(filePath, outputDir string) error {
 		}
 
 		// Match found - write output
-		fmt.Printf("Matched parser %v\n", parser.Name())
+		fmt.Printf(" Matched parser %v\n", parser.Name())
 		dstPath := path.Join(outputDir, parser.Name()+"_"+fileName)
 
-		if err := writeRecordsToCsv(parsed, dstPath); err != nil {
+		if err := writeRecordsToCsv(parsed.ValidRecords, dstPath); err != nil {
 			return fmt.Errorf("failed to write output: %w", err)
 		}
 
-		fmt.Printf("Write csv to %v\n", dstPath)
+		// Display statistics
+		fmt.Printf("Converted %d row(s)", len(parsed.ValidRecords))
+		if len(parsed.SkippedRows) > 0 {
+			fmt.Printf(", skipped %d row(s)", len(parsed.SkippedRows))
+		}
+		fmt.Printf("\n")
+
+		// Display skipped rows with details
+		if len(parsed.SkippedRows) > 0 {
+			for _, skipped := range parsed.SkippedRows {
+				fmt.Fprintf(os.Stderr, "Skipped row %d: %v (reason: %s)\n",
+					skipped.RowNumber, skipped.RawData, skipped.Reason)
+			}
+		}
+
+		fmt.Printf("Wrote to %v\n", dstPath)
 		return nil // Success
 	}
 
-	fmt.Println("No matched parser")
+	fmt.Println(" No matched parser")
 	return nil // Not an error - just no parser matched
 }
 
@@ -122,7 +147,7 @@ func processDirectory(inputDir, outputDir string) error {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
 			srcPath := path.Join(inputDir, file.Name())
 			if err := processFile(srcPath, outputDir); err != nil {
-				log.Printf("Error processing %s: %v", srcPath, err)
+				fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", srcPath, err)
 			}
 		}
 	}
@@ -161,7 +186,7 @@ func watchMode(inputDir, outputDir string) error {
 				if strings.HasSuffix(event.Name, ".csv") {
 					fmt.Printf("\nDetected change: %s\n", event.Name)
 					if err := processFile(event.Name, outputDir); err != nil {
-						log.Printf("Error processing %s: %v", event.Name, err)
+						fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", event.Name, err)
 					}
 				}
 			}
@@ -169,7 +194,7 @@ func watchMode(inputDir, outputDir string) error {
 			if !ok {
 				return nil
 			}
-			log.Printf("Watcher error: %v", err)
+			fmt.Fprintf(os.Stderr, "Watcher error: %v\n", err)
 		}
 	}
 }

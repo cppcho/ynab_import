@@ -28,26 +28,26 @@ func TestSbi_Parse_ValidCSV(t *testing.T) {
 	}
 
 	// Should have 3 data rows
-	if len(result) != 3 {
-		t.Errorf("Parse() returned %d records, want 3", len(result))
+	if len(result.ValidRecords) != 3 {
+		t.Errorf("Parse() returned %d records, want 3", len(result.ValidRecords))
 	}
 
 	// Verify first record (withdrawal)
-	if len(result) > 0 {
-		if result[0].date != "2025-12-26" {
-			t.Errorf("Record[0].date = %q, want %q", result[0].date, "2025-12-26")
+	if len(result.ValidRecords) > 0 {
+		if result.ValidRecords[0].date != "2025-12-26" {
+			t.Errorf("Record[0].date = %q, want %q", result.ValidRecords[0].date, "2025-12-26")
 		}
 		// Withdrawal amount should be flipped
-		if result[0].amount != "-91688" {
-			t.Errorf("Record[0].amount = %q, want %q (flipSign applied)", result[0].amount, "-91688")
+		if result.ValidRecords[0].amount != "-91688" {
+			t.Errorf("Record[0].amount = %q, want %q (flipSign applied)", result.ValidRecords[0].amount, "-91688")
 		}
 	}
 
 	// Verify second record (deposit)
-	if len(result) > 1 {
+	if len(result.ValidRecords) > 1 {
 		// Deposit amount should not be flipped
-		if result[1].amount != "50000" {
-			t.Errorf("Record[1].amount = %q, want %q", result[1].amount, "50000")
+		if result.ValidRecords[1].amount != "50000" {
+			t.Errorf("Record[1].amount = %q, want %q", result.ValidRecords[1].amount, "50000")
 		}
 	}
 }
@@ -87,9 +87,9 @@ func TestSbi_Parse_DateConversion(t *testing.T) {
 		t.Fatal("Parse() returned nil")
 	}
 
-	if len(result) > 0 {
-		if result[0].date != "2025-01-05" {
-			t.Errorf("Date conversion failed: got %q, want %q", result[0].date, "2025-01-05")
+	if len(result.ValidRecords) > 0 {
+		if result.ValidRecords[0].date != "2025-01-05" {
+			t.Errorf("Date conversion failed: got %q, want %q", result.ValidRecords[0].date, "2025-01-05")
 		}
 	}
 }
@@ -119,12 +119,12 @@ func TestSbi_Parse_AmountHandling(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Parse() unexpected error: %v", err)
 			}
-			if len(result) == 0 {
+			if len(result.ValidRecords) == 0 {
 				t.Fatal("Parse() returned nil or empty")
 			}
 
-			if result[0].amount != tt.expectedAmount {
-				t.Errorf("Amount = %q, want %q", result[0].amount, tt.expectedAmount)
+			if result.ValidRecords[0].amount != tt.expectedAmount {
+				t.Errorf("Amount = %q, want %q", result.ValidRecords[0].amount, tt.expectedAmount)
 			}
 		})
 	}

@@ -28,18 +28,18 @@ func TestSmbcCard_Parse_ValidCSV(t *testing.T) {
 	}
 
 	// Should have 3 data rows
-	if len(result) != 3 {
-		t.Errorf("Parse() returned %d records, want 3", len(result))
+	if len(result.ValidRecords) != 3 {
+		t.Errorf("Parse() returned %d records, want 3", len(result.ValidRecords))
 	}
 
 	// Verify first record
-	if len(result) > 0 {
-		if result[0].date != "2025-12-23" {
-			t.Errorf("Record[0].date = %q, want %q", result[0].date, "2025-12-23")
+	if len(result.ValidRecords) > 0 {
+		if result.ValidRecords[0].date != "2025-12-23" {
+			t.Errorf("Record[0].date = %q, want %q", result.ValidRecords[0].date, "2025-12-23")
 		}
 		// Amount should be flipped (negative)
-		if result[0].amount != "-2230" {
-			t.Errorf("Record[0].amount = %q, want %q (flipSign applied)", result[0].amount, "-2230")
+		if result.ValidRecords[0].amount != "-2230" {
+			t.Errorf("Record[0].amount = %q, want %q (flipSign applied)", result.ValidRecords[0].amount, "-2230")
 		}
 	}
 }
@@ -78,9 +78,9 @@ func TestSmbcCard_Parse_DateConversion(t *testing.T) {
 		t.Fatal("Parse() returned nil")
 	}
 
-	if len(result) > 0 {
-		if result[0].date != "2025-01-05" {
-			t.Errorf("Date conversion failed: got %q, want %q", result[0].date, "2025-01-05")
+	if len(result.ValidRecords) > 0 {
+		if result.ValidRecords[0].date != "2025-01-05" {
+			t.Errorf("Date conversion failed: got %q, want %q", result.ValidRecords[0].date, "2025-01-05")
 		}
 	}
 }
@@ -163,12 +163,12 @@ func TestSmbcCard_Parse_EmptyColumn7Fallback(t *testing.T) {
 				t.Fatal("Parse() returned nil for valid record")
 			}
 
-			if len(result) != 1 {
-				t.Fatalf("Parse() returned %d records, want 1", len(result))
+			if len(result.ValidRecords) != 1 {
+				t.Fatalf("Parse() returned %d records, want 1", len(result.ValidRecords))
 			}
 
-			if result[0].amount != tt.expectedAmount {
-				t.Errorf("amount = %q, want %q", result[0].amount, tt.expectedAmount)
+			if result.ValidRecords[0].amount != tt.expectedAmount {
+				t.Errorf("amount = %q, want %q", result.ValidRecords[0].amount, tt.expectedAmount)
 			}
 		})
 	}

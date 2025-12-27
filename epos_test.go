@@ -28,18 +28,18 @@ func TestEpos_Parse_ValidCSV(t *testing.T) {
 	}
 
 	// Should have 3 data rows
-	if len(result) != 3 {
-		t.Errorf("Parse() returned %d records, want 3", len(result))
+	if len(result.ValidRecords) != 3 {
+		t.Errorf("Parse() returned %d records, want 3", len(result.ValidRecords))
 	}
 
 	// Verify first record
-	if len(result) > 0 {
-		if result[0].date != "2025-12-24" {
-			t.Errorf("Record[0].date = %q, want %q", result[0].date, "2025-12-24")
+	if len(result.ValidRecords) > 0 {
+		if result.ValidRecords[0].date != "2025-12-24" {
+			t.Errorf("Record[0].date = %q, want %q", result.ValidRecords[0].date, "2025-12-24")
 		}
 		// Amount should be flipped (negative)
-		if result[0].amount != "-1155" {
-			t.Errorf("Record[0].amount = %q, want %q (flipSign applied)", result[0].amount, "-1155")
+		if result.ValidRecords[0].amount != "-1155" {
+			t.Errorf("Record[0].amount = %q, want %q (flipSign applied)", result.ValidRecords[0].amount, "-1155")
 		}
 	}
 }
@@ -79,9 +79,9 @@ func TestEpos_Parse_DateConversion(t *testing.T) {
 		t.Fatal("Parse() returned nil")
 	}
 
-	if len(result) > 0 {
-		if result[0].date != "2025-01-05" {
-			t.Errorf("Date conversion failed: got %q, want %q", result[0].date, "2025-01-05")
+	if len(result.ValidRecords) > 0 {
+		if result.ValidRecords[0].date != "2025-01-05" {
+			t.Errorf("Date conversion failed: got %q, want %q", result.ValidRecords[0].date, "2025-01-05")
 		}
 	}
 }
@@ -107,8 +107,13 @@ func TestEpos_Parse_EmptyRowSkipping(t *testing.T) {
 	}
 
 	// Should have only 2 valid records (skipped 2)
-	if len(result) != 2 {
-		t.Errorf("Parse() returned %d records, want 2 (2 rows should be skipped)", len(result))
+	if len(result.ValidRecords) != 2 {
+		t.Errorf("Parse() returned %d valid records, want 2", len(result.ValidRecords))
+	}
+
+	// Should have 2 skipped rows
+	if len(result.SkippedRows) != 2 {
+		t.Errorf("Parse() returned %d skipped rows, want 2", len(result.SkippedRows))
 	}
 }
 
@@ -134,20 +139,25 @@ func TestEpos_Parse_FullWidthHyphenSkipping(t *testing.T) {
 	}
 
 	// Should have only 3 valid records (skipped the annual fee row)
-	if len(result) != 3 {
-		t.Errorf("Parse() returned %d records, want 3 (annual fee row should be skipped)", len(result))
+	if len(result.ValidRecords) != 3 {
+		t.Errorf("Parse() returned %d valid records, want 3", len(result.ValidRecords))
+	}
+
+	// Should have 1 skipped row (the annual fee row with invalid date)
+	if len(result.SkippedRows) != 1 {
+		t.Errorf("Parse() returned %d skipped rows, want 1", len(result.SkippedRows))
 	}
 
 	// Verify the valid records are correct
-	if len(result) == 3 {
-		if result[0].payee != "Shop 1" {
-			t.Errorf("Record[0].payee = %q, want %q", result[0].payee, "Shop 1")
+	if len(result.ValidRecords) == 3 {
+		if result.ValidRecords[0].payee != "Shop 1" {
+			t.Errorf("Record[0].payee = %q, want %q", result.ValidRecords[0].payee, "Shop 1")
 		}
-		if result[1].payee != "Shop 2" {
-			t.Errorf("Record[1].payee = %q, want %q", result[1].payee, "Shop 2")
+		if result.ValidRecords[1].payee != "Shop 2" {
+			t.Errorf("Record[1].payee = %q, want %q", result.ValidRecords[1].payee, "Shop 2")
 		}
-		if result[2].payee != "Shop 3" {
-			t.Errorf("Record[2].payee = %q, want %q", result[2].payee, "Shop 3")
+		if result.ValidRecords[2].payee != "Shop 3" {
+			t.Errorf("Record[2].payee = %q, want %q", result.ValidRecords[2].payee, "Shop 3")
 		}
 	}
 }

@@ -1,17 +1,12 @@
 package main
 
-import (
-	"fmt"
-	"os"
-)
-
 type RakutenCard struct{}
 
 func (p RakutenCard) Name() string {
 	return "rakuten_card"
 }
 
-func (p RakutenCard) Parse(records [][]string) ([]YnabRecord, error) {
+func (p RakutenCard) Parse(records [][]string) (*ParseResult, error) {
 	// Handle empty records
 	if len(records) == 0 {
 		return nil, nil // Not my format
@@ -20,19 +15,29 @@ func (p RakutenCard) Parse(records [][]string) ([]YnabRecord, error) {
 	if len(records[0]) != 10 || records[0][9] != "新規サイン" {
 		return nil, nil
 	}
-	parsed := make([]YnabRecord, 0)
-	for _, row := range records[1:] {
+
+	var validRecords []YnabRecord
+	var skippedRows []SkippedRow
+
+	for i, row := range records[1:] {
 		date, err := convertDate("2006/01/02", "2006-01-02", row[0])
 		if err != nil {
-			// Skip invalid row with warning (like epos.go)
-			fmt.Fprintf(os.Stderr, "Warning: skipping row with invalid date: %v\n", err)
+			skippedRows = append(skippedRows, SkippedRow{
+				RowNumber: i + 2, // +2 for header and 0-index
+				RawData:   row,
+				Reason:    err.Error(),
+			})
 			continue
 		}
-		parsed = append(parsed, YnabRecord{
+		validRecords = append(validRecords, YnabRecord{
 			date:   date,
 			amount: flipSign(row[6]),
 			payee:  row[1],
 		})
 	}
-	return parsed, nil
+
+	return &ParseResult{
+		ValidRecords: validRecords,
+		SkippedRows:  skippedRows,
+	}, nil
 }
