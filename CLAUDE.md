@@ -56,11 +56,9 @@ Before completing ANY code change, you MUST:
    make build
    ```
 
-5. **Update Documentation**: Update this CLAUDE.md file if:
-   - Adding new features or functionality
-   - Changing architecture or design patterns
-   - Modifying development workflows
-   - Adding new commands or tools
+5. **Update Documentation**: Update documentation when making changes:
+   - **README.md** (user-facing): Update when adding new features, supported institutions, or changing usage
+   - **CLAUDE.md** (developer-facing): Update when changing architecture, design patterns, or development workflows
 
 **Workflow for Every Change:**
 1. Make code changes
@@ -69,8 +67,30 @@ Before completing ANY code change, you MUST:
 4. Run `make fmt` to format code
 5. Run `make lint` and fix any issues
 6. Run `make build` to verify successful compilation
-7. Update CLAUDE.md if necessary
+7. Update documentation (README.md and/or CLAUDE.md) if necessary
 8. Only then is the change complete
+
+## Documentation
+
+This project maintains two documentation files:
+
+**README.md** - User-facing documentation:
+- Installation and setup instructions
+- Usage examples and command-line flags
+- List of supported financial institutions
+- Quick start guide for end users
+- Output format specification
+
+**CLAUDE.md** (this file) - Developer-facing documentation:
+- Architecture and design patterns
+- Code quality requirements and workflow
+- Parser plugin pattern details
+- Guidelines for adding new parsers
+- Internal implementation details
+
+**When to update each:**
+- Update **README.md** when: Adding supported institutions, changing CLI flags, modifying usage patterns, adding features visible to end users
+- Update **CLAUDE.md** when: Changing architecture, adding internal utilities, modifying parser patterns, updating development workflow
 
 ## Architecture
 
@@ -114,8 +134,10 @@ The codebase uses a plugin-style architecture where each financial institution h
 4. Handle institution-specific date formats and column mappings
 5. Use `flipSign()` if amount signs need reversing
 6. **Create test file** `<institution>_test.go` with comprehensive tests
-7. **Run quality checks**: `make test`, `make fmt`, `make lint`, `make build` (all must pass)
-8. **Update CLAUDE.md** if the parser introduces new patterns or special handling
+7. **Add test data**: Sample CSV in `testdata/parsers/<institution>_valid.csv`
+8. **Run quality checks**: `make test`, `make fmt`, `make lint`, `make build` (all must pass)
+9. **Update README.md**: Add the institution to the "Supported Financial Institutions" table
+10. **Update CLAUDE.md**: Only if the parser introduces new patterns or special handling
 
 ### Important Details
 

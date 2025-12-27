@@ -1,1 +1,232 @@
 # ynab_import
+
+A Go-based CSV conversion tool that transforms bank and credit card transaction exports from various Japanese financial institutions into YNAB (You Need A Budget) compatible format.
+
+## Features
+
+- **9 Financial Institution Support** - Supports major Japanese banks and credit cards
+- **Automatic Encoding Detection** - Handles both UTF-8 and Shift_JIS encoded CSVs
+- **Batch Processing** - Processes all CSV files in a directory at once
+- **Automatic Parser Matching** - Identifies the correct parser based on CSV headers
+- **Timestamped Output** - Organizes converted files in dated directories
+- **YNAB-Ready Format** - Outputs standardized CSV format for direct YNAB import
+
+## Supported Financial Institutions
+
+| Institution | Japanese Name | Type |
+|-------------|---------------|------|
+| SMBC Bank | 三井住友銀行 | Bank |
+| Rakuten Bank | 楽天銀行 | Bank |
+| SBI Bank | 住信SBIネット銀行 | Bank |
+| SMBC Card | 三井住友カード | Credit Card (2 formats) |
+| Rakuten Card | 楽天カード | Credit Card |
+| EPOS Card | エポスカード | Credit Card |
+| VIEW Card | ビューカード | Credit Card |
+| Saison Card | セゾンカード | Credit Card |
+
+## Requirements
+
+- Go 1.25 or later
+
+## Installation
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd ynab_import
+
+# Download dependencies
+go mod download
+
+# Build the binary
+make build
+```
+
+The compiled binary will be available at `./bin/ynab_import`.
+
+## Quick Start
+
+```bash
+# Place your bank/credit card CSV exports in ~/Downloads
+# Run the converter
+./bin/ynab_import
+
+# Find converted files in ~/Desktop/YYYYMMDD_output/
+```
+
+## Usage
+
+### Basic Usage
+
+```bash
+./bin/ynab_import
+```
+
+By default, the tool:
+- Reads CSV files from `~/Downloads`
+- Outputs converted files to `~/Desktop/YYYYMMDD_output/`
+
+### Custom Directories
+
+Use command-line flags to specify custom input/output directories:
+
+```bash
+./bin/ynab_import -input ~/Documents/bank_exports -output ~/Documents/ynab_ready
+```
+
+### Environment Variables
+
+You can also configure directories using environment variables:
+
+```bash
+export CSV_DIR_IN=~/Documents/bank_exports
+export CSV_DIR=~/Documents/ynab_ready
+./bin/ynab_import
+```
+
+### Command-Line Flags
+
+| Flag | Environment Variable | Default | Description |
+|------|---------------------|---------|-------------|
+| `-input` | `CSV_DIR_IN` | `~/Downloads` | Directory containing input CSV files |
+| `-output` | `CSV_DIR` | `~/Desktop` | Base directory for output files |
+
+## Output Format
+
+The tool converts all transactions to YNAB's standard CSV format:
+
+```csv
+Date,Payee,Memo,Amount
+2024-01-15,Grocery Store,Shopping,3500
+2024-01-16,Restaurant,Dinner,-4200
+```
+
+- **Date**: YYYY-MM-DD format
+- **Payee**: Merchant or transaction description
+- **Memo**: Additional transaction details
+- **Amount**: Numeric amount (positive for income, negative for expenses)
+
+### Output Directory Structure
+
+```
+~/Desktop/
+└── 20241227_output/
+    ├── smbc_transactions.csv
+    ├── rakuten_card_december.csv
+    └── epos_2024.csv
+```
+
+Output files are named: `{parser_name}_{original_filename}`
+
+## Development
+
+### Building
+
+```bash
+# Build binary to ./bin/ynab_import
+make build
+
+# Run directly without building
+make run
+# or
+go run .
+```
+
+### Testing
+
+```bash
+# Run all tests
+make test
+
+# Generate coverage report (opens in browser)
+make coverage
+```
+
+### Code Quality
+
+```bash
+# Format code
+make fmt
+
+# Run linter
+make lint
+```
+
+### Development Workflow
+
+Before completing any code change:
+
+1. Update or add tests
+2. Run `make test` - all tests must pass
+3. Run `make fmt` - format code
+4. Run `make lint` - fix any issues
+5. Run `make build` - verify successful compilation
+
+See [CLAUDE.md](CLAUDE.md) for detailed development guidelines.
+
+## Adding New Parsers
+
+To add support for a new financial institution:
+
+1. **Create parser file**: `institution.go`
+2. **Implement Parser interface**:
+   ```go
+   type YourParser struct{}
+
+   func (p YourParser) Name() string {
+       return "InstitutionName"
+   }
+
+   func (p YourParser) Parse(records [][]string) []YnabRecord {
+       // Check if CSV matches your format
+       if !matchesMyFormat(records) {
+           return nil  // Not my format
+       }
+
+       // Parse and convert records
+       // ...
+       return ynabRecords
+   }
+   ```
+3. **Register parser**: Add to `parsers` slice in `main.go:27`
+4. **Create test file**: `institution_test.go` with comprehensive tests
+5. **Add test data**: Sample CSV in `testdata/parsers/`
+6. **Verify quality**: Run `make test`, `make fmt`, `make lint`, `make build`
+
+Key utilities available:
+- `flipSign(amount)` - Reverse transaction sign
+- `convertDate(date, fromLayout)` - Convert date to YYYY-MM-DD
+
+See existing parsers (e.g., `smbc.go`, `rakuten.go`) for examples.
+
+## Project Structure
+
+```
+ynab_import/
+├── main.go              # Core application logic and parser registry
+├── csv.go               # CSV reading/writing with encoding detection
+├── smbc.go              # SMBC Bank parser
+├── rakuten.go           # Rakuten Bank parser
+├── epos.go              # EPOS Card parser
+├── sbi.go               # SBI Bank parser
+├── rakuten_card.go      # Rakuten Card parser
+├── smbc_card.go         # SMBC Card parser (format 1)
+├── smbc_card2.go        # SMBC Card parser (format 2)
+├── view.go              # VIEW Card parser
+├── saison.go            # Saison Card parser
+├── *_test.go            # Test files
+├── testdata/            # Test CSV samples
+├── Makefile             # Build automation
+├── go.mod               # Go module definition
+├── CLAUDE.md            # Detailed development guidelines
+└── TODO.md              # Known issues and planned improvements
+```
+
+## How It Works
+
+1. **Scan Input Directory** - Finds all CSV files in the input directory
+2. **Try Parsers** - For each CSV, tries each registered parser in sequence
+3. **Match Headers** - Parsers check CSV headers to identify their format
+4. **Parse & Convert** - Matching parser converts records to YNAB format
+5. **Handle Encoding** - Automatically detects and converts Shift_JIS to UTF-8
+6. **Write Output** - Saves converted CSV to timestamped output directory
