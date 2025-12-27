@@ -18,7 +18,10 @@ func TestSmbc_Parse_ValidCSV(t *testing.T) {
 	}
 
 	parser := Smbc{}
-	result := parser.Parse(records)
+	result, err := parser.Parse(records)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
 
 	if result == nil {
 		t.Fatal("Parse() returned nil for valid SMBC CSV")
@@ -56,7 +59,10 @@ func TestSmbc_Parse_WrongHeaders(t *testing.T) {
 	}
 
 	parser := Smbc{}
-	result := parser.Parse(records)
+	result, err := parser.Parse(records)
+	if err != nil {
+		t.Errorf("Parse() unexpected error: %v", err)
+	}
 
 	if result != nil {
 		t.Error("Parse() should return nil for non-SMBC CSV")
@@ -64,15 +70,36 @@ func TestSmbc_Parse_WrongHeaders(t *testing.T) {
 }
 
 func TestSmbc_Parse_EmptyRecords(t *testing.T) {
-	// This test documents that empty input causes panic (current behavior)
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("Parse() should panic for empty records, but didn't")
-		}
-	}()
-
 	parser := Smbc{}
-	parser.Parse([][]string{}) // Will panic
+	result, err := parser.Parse([][]string{})
+
+	if err != nil {
+		t.Errorf("Parse() unexpected error for empty input: %v", err)
+	}
+	if result != nil {
+		t.Error("Parse() should return nil for empty records")
+	}
+}
+
+func TestSmbc_Parse_InvalidDate(t *testing.T) {
+	parser := Smbc{}
+
+	mockRecords := [][]string{
+		{"年月日", "お引出し", "お預入れ", "お取り扱い内容", "残高", "メモ", "ラベル"},
+		{"2025/1/5", "", "1000", "Valid", "10000", "", ""},
+		{"invalid-date", "", "2000", "Invalid", "12000", "", ""}, // Should skip
+		{"2025/1/6", "", "3000", "Valid", "15000", "", ""},
+	}
+
+	result, err := parser.Parse(mockRecords)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+
+	// Should have 2 valid records (1 skipped)
+	if len(result) != 2 {
+		t.Errorf("Parse() returned %d records, want 2 (1 invalid row should be skipped)", len(result))
+	}
 }
 
 func TestSmbc_Parse_DateConversion(t *testing.T) {
@@ -84,7 +111,10 @@ func TestSmbc_Parse_DateConversion(t *testing.T) {
 		{"2025/1/5", "", "1000", "Test", "10000", "", ""},
 	}
 
-	result := parser.Parse(mockRecords)
+	result, err := parser.Parse(mockRecords)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
 	if result == nil {
 		t.Fatal("Parse() returned nil")
 	}
@@ -117,7 +147,10 @@ func TestSmbc_Parse_AmountHandling(t *testing.T) {
 				{"2025/1/1", tt.withdrawal, tt.deposit, "Test", "10000", "", ""},
 			}
 
-			result := parser.Parse(mockRecords)
+			result, err := parser.Parse(mockRecords)
+			if err != nil {
+				t.Fatalf("Parse() unexpected error: %v", err)
+			}
 			if result == nil || len(result) == 0 {
 				t.Fatal("Parse() returned nil or empty")
 			}

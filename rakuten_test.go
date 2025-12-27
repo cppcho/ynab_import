@@ -18,7 +18,10 @@ func TestRakuten_Parse_ValidCSV(t *testing.T) {
 	}
 
 	parser := Rakuten{}
-	result := parser.Parse(records)
+	result, err := parser.Parse(records)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
 
 	if result == nil {
 		t.Fatal("Parse() returned nil for valid Rakuten CSV")
@@ -48,7 +51,10 @@ func TestRakuten_Parse_WrongHeaders(t *testing.T) {
 	}
 
 	parser := Rakuten{}
-	result := parser.Parse(records)
+	result, err := parser.Parse(records)
+	if err != nil {
+		t.Errorf("Parse() unexpected error: %v", err)
+	}
 
 	if result != nil {
 		t.Error("Parse() should return nil for non-Rakuten CSV")
@@ -64,7 +70,10 @@ func TestRakuten_Parse_DateConversion(t *testing.T) {
 		{"20250105", "-1000", "50000", "Test Payment"},
 	}
 
-	result := parser.Parse(mockRecords)
+	result, err := parser.Parse(mockRecords)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
 	if result == nil {
 		t.Fatal("Parse() returned nil")
 	}
@@ -95,7 +104,10 @@ func TestRakuten_Parse_AmountHandling(t *testing.T) {
 				{"20250101", tt.amount, "100000", "Test"},
 			}
 
-			result := parser.Parse(mockRecords)
+			result, err := parser.Parse(mockRecords)
+			if err != nil {
+				t.Fatalf("Parse() unexpected error: %v", err)
+			}
 			if len(result) == 0 {
 				t.Fatal("Parse() returned nil or empty")
 			}

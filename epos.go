@@ -10,9 +10,14 @@ func (p Epos) Name() string {
 	return "epos"
 }
 
-func (p Epos) Parse(records [][]string) []YnabRecord {
+func (p Epos) Parse(records [][]string) ([]YnabRecord, error) {
+	// Handle empty records
+	if len(records) == 0 {
+		return nil, nil // Not my format
+	}
+
 	if !reflect.DeepEqual(records[0], []string{"種別（ショッピング、キャッシング、その他）", "ご利用年月日", "ご利用場所", "ご利用内容", "ご利用金額", "お支払金額（キャッシングでは利息を含みます）", "支払区分"}) {
-		return nil
+		return nil, nil
 	}
 	parsed := make([]YnabRecord, 0)
 	for _, row := range records[1:] {
@@ -21,7 +26,7 @@ func (p Epos) Parse(records [][]string) []YnabRecord {
 		}
 		date, err := convertDate("2006年01月02日", "2006-01-02", row[1])
 		if err != nil {
-			panic(err)
+			continue // Skip rows with invalid/unparseable dates
 		}
 		parsed = append(parsed, YnabRecord{
 			date:   date,
@@ -29,5 +34,5 @@ func (p Epos) Parse(records [][]string) []YnabRecord {
 			payee:  row[2],
 		})
 	}
-	return parsed
+	return parsed, nil
 }

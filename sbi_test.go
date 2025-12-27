@@ -18,7 +18,10 @@ func TestSbi_Parse_ValidCSV(t *testing.T) {
 	}
 
 	parser := Sbi{}
-	result := parser.Parse(records)
+	result, err := parser.Parse(records)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
 
 	if result == nil {
 		t.Fatal("Parse() returned nil for valid SBI CSV")
@@ -57,7 +60,10 @@ func TestSbi_Parse_WrongHeaders(t *testing.T) {
 	}
 
 	parser := Sbi{}
-	result := parser.Parse(records)
+	result, err := parser.Parse(records)
+	if err != nil {
+		t.Errorf("Parse() unexpected error: %v", err)
+	}
 
 	if result != nil {
 		t.Error("Parse() should return nil for non-SBI CSV")
@@ -73,7 +79,10 @@ func TestSbi_Parse_DateConversion(t *testing.T) {
 		{"2025/01/05", "Test", "", "1000", "100000", "-"},
 	}
 
-	result := parser.Parse(mockRecords)
+	result, err := parser.Parse(mockRecords)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
 	if result == nil {
 		t.Fatal("Parse() returned nil")
 	}
@@ -106,7 +115,10 @@ func TestSbi_Parse_AmountHandling(t *testing.T) {
 				{"2025/01/01", "Test", tt.withdrawal, tt.deposit, "100000", "-"},
 			}
 
-			result := parser.Parse(mockRecords)
+			result, err := parser.Parse(mockRecords)
+			if err != nil {
+				t.Fatalf("Parse() unexpected error: %v", err)
+			}
 			if len(result) == 0 {
 				t.Fatal("Parse() returned nil or empty")
 			}

@@ -18,7 +18,10 @@ func TestSmbcCard_Parse_ValidCSV(t *testing.T) {
 	}
 
 	parser := SmbcCard{}
-	result := parser.Parse(records)
+	result, err := parser.Parse(records)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
 
 	if result == nil {
 		t.Fatal("Parse() returned nil for valid SMBC Card CSV")
@@ -49,7 +52,10 @@ func TestSmbcCard_Parse_WrongHeaders(t *testing.T) {
 	}
 
 	parser := SmbcCard{}
-	result := parser.Parse(records)
+	result, err := parser.Parse(records)
+	if err != nil {
+		t.Errorf("Parse() unexpected error: %v", err)
+	}
 
 	if result != nil {
 		t.Error("Parse() should return nil for non-SMBC Card CSV")
@@ -64,7 +70,10 @@ func TestSmbcCard_Parse_DateConversion(t *testing.T) {
 		{"2025/1/5", "Test Shop", "ご本人", "1回払い", "", "'26/01", "1000", "1000", "", "", "", "", ""},
 	}
 
-	result := parser.Parse(mockRecords)
+	result, err := parser.Parse(mockRecords)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
 	if result == nil {
 		t.Fatal("Parse() returned nil")
 	}
@@ -97,7 +106,10 @@ func TestSmbcCard_Parse_Validation(t *testing.T) {
 				{"2025/1/1", "Test", tt.col2, "1回払い", "", tt.col5, "1000", "1000", "", "", "", "", ""},
 			}
 
-			result := parser.Parse(mockRecords)
+			result, err := parser.Parse(mockRecords)
+			if err != nil {
+				t.Fatalf("Parse() unexpected error: %v", err)
+			}
 			if tt.shouldPass && result == nil {
 				t.Error("Parse() returned nil, expected valid result")
 			}
@@ -143,7 +155,10 @@ func TestSmbcCard_Parse_EmptyColumn7Fallback(t *testing.T) {
 				{"2025/12/5", "Test Merchant", "ご本人", "1回払い", "", "'26/01", tt.col6, tt.col7, "", "", "", "", ""},
 			}
 
-			result := parser.Parse(mockRecords)
+			result, err := parser.Parse(mockRecords)
+			if err != nil {
+				t.Fatalf("Parse() unexpected error: %v", err)
+			}
 			if result == nil {
 				t.Fatal("Parse() returned nil for valid record")
 			}

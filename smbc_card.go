@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"strings"
 )
 
@@ -10,20 +12,27 @@ func (p SmbcCard) Name() string {
 	return "smbc_card"
 }
 
-func (p SmbcCard) Parse(records [][]string) []YnabRecord {
+func (p SmbcCard) Parse(records [][]string) ([]YnabRecord, error) {
+	// Handle empty records
+	if len(records) == 0 {
+		return nil, nil // Not my format
+	}
+
 	if records[0][2] != "ご本人" && records[0][2] != "ご家族" {
-		return nil
+		return nil, nil
 	}
 
 	if !strings.HasPrefix(records[0][5], "'") {
-		return nil
+		return nil, nil
 	}
 
 	parsed := make([]YnabRecord, 0)
 	for _, row := range records {
 		date, err := convertDate("2006/1/2", "2006-01-02", row[0])
 		if err != nil {
-			panic(err)
+			// Skip invalid row with warning (like epos.go)
+			fmt.Fprintf(os.Stderr, "Warning: skipping row with invalid date: %v\n", err)
+			continue
 		}
 
 		// Use column 7 for amount, or column 6 if column 7 is empty (international transactions)
@@ -38,5 +47,5 @@ func (p SmbcCard) Parse(records [][]string) []YnabRecord {
 			payee:  row[1],
 		})
 	}
-	return parsed
+	return parsed, nil
 }
