@@ -15,14 +15,16 @@ import (
 
 func writeRecordsToCsv(records []YnabRecord, outputPath string) {
 	f, err := os.Create(outputPath)
-	defer f.Close()
-
 	if err != nil {
 		panic(err)
 	}
+	defer f.Close()
 
 	w := csv.NewWriter(f)
-	w.Write([]string{"Date", "Payee", "Memo", "Amount"})
+	err = w.Write([]string{"Date", "Payee", "Memo", "Amount"})
+	if err != nil {
+		panic(err)
+	}
 	for _, record := range records {
 		if record.date == "" || record.amount == "" {
 			continue
