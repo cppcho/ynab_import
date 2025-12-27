@@ -13,7 +13,8 @@ help:
 
 # Build the binary
 build:
-	go build -o ynab_import
+	mkdir -p bin
+	go build -o bin/ynab_import
 
 # Run the application
 run:
@@ -39,5 +40,5 @@ coverage:
 
 # Clean build artifacts
 clean:
-	rm -f ynab_import
+	rm -rf bin
 	rm -f coverage.out coverage.html
