@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path"
@@ -8,9 +9,6 @@ import (
 	"strings"
 	"time"
 )
-
-const CSV_DIR_IN = "/Users/cppcho/Downloads"
-const CSV_DIR = "/Users/cppcho/Desktop"
 
 type YnabRecord struct {
 	date   string
@@ -36,23 +34,55 @@ func flipSign(str string) string {
 	return strconv.Itoa(val * -1)
 }
 
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func expandHomeDir(path string) string {
+	if len(path) == 0 || path[0] != '~' {
+		return path
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return path
+	}
+
+	if len(path) == 1 {
+		return homeDir
+	}
+	return homeDir + path[1:]
+}
+
 func main() {
-	files, err := os.ReadDir(CSV_DIR_IN)
+	// Define CLI flags with environment variable defaults
+	inputDir := flag.String("input", getEnvOrDefault("CSV_DIR_IN", "~/Downloads"), "Input directory containing CSV files (env: CSV_DIR_IN, default: ~/Downloads)")
+	outputDir := flag.String("output", getEnvOrDefault("CSV_DIR", "~/Desktop"), "Output directory for converted CSV files (env: CSV_DIR, default: ~/Desktop)")
+	flag.Parse()
+
+	// Expand ~ in paths
+	*inputDir = expandHomeDir(*inputDir)
+	*outputDir = expandHomeDir(*outputDir)
+
+	files, err := os.ReadDir(*inputDir)
 	if err != nil {
 		panic(err)
 	}
 
 	// Create output dir (e.g. ~/Desktop/20060102_output)
 	now := time.Now().UTC().Format("20060102")
-	outputDir := path.Join(CSV_DIR, now+"_output")
-	err = os.MkdirAll(outputDir, 0755)
+	timestampedOutputDir := path.Join(*outputDir, now+"_output")
+	err = os.MkdirAll(timestampedOutputDir, 0755)
 	if err != nil {
 		panic(err)
 	}
 
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
-			srcPath := path.Join(CSV_DIR_IN, file.Name())
+			srcPath := path.Join(*inputDir, file.Name())
 			fmt.Printf("Parsing %v ...", srcPath)
 
 			rawRecords := readCsvToRawRecords(srcPath)
@@ -62,7 +92,7 @@ func main() {
 				parsed = parser.Parse(rawRecords)
 				if parsed != nil {
 					fmt.Printf("Matched parser %v\n", parser.Name())
-					dstPath := path.Join(outputDir, parser.Name()+"_"+file.Name())
+					dstPath := path.Join(timestampedOutputDir, parser.Name()+"_"+file.Name())
 					writeRecordsToCsv(parsed, dstPath)
 					fmt.Printf("Write csv to %v\n", dstPath)
 					break
