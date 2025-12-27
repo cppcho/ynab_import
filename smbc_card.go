@@ -21,8 +21,12 @@ func (p SmbcCard) Parse(records [][]string) []YnabRecord {
 
 	parsed := make([]YnabRecord, 0)
 	for _, row := range records {
+		date, err := convertDate("2006/1/2", "2006-01-02", row[0])
+		if err != nil {
+			panic(err)
+		}
 		parsed = append(parsed, YnabRecord{
-			date:   convertDate("2006/1/2", "2006-01-02", row[0]),
+			date:   date,
 			amount: flipSign(row[7]),
 			payee:  row[1],
 		})

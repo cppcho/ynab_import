@@ -15,8 +15,12 @@ func (p View) Parse(records [][]string) []YnabRecord {
 	}
 	parsed := make([]YnabRecord, 0)
 	for _, row := range records[6:] {
+		date, err := convertDate("2006/01/02", "2006-01-02", row[0])
+		if err != nil {
+			panic(err)
+		}
 		parsed = append(parsed, YnabRecord{
-			date:   convertDate("2006/01/02", "2006-01-02", row[0]),
+			date:   date,
 			amount: flipSign(row[4]),
 			payee:  row[1],
 		})

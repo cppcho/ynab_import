@@ -16,8 +16,12 @@ func (p Rakuten) Parse(records [][]string) []YnabRecord {
 	}
 	parsed := make([]YnabRecord, 0)
 	for _, row := range records[1:] {
+		date, err := convertDate("20060102", "2006-01-02", row[0])
+		if err != nil {
+			panic(err)
+		}
 		parsed = append(parsed, YnabRecord{
-			date:   convertDate("20060102", "2006-01-02", row[0]),
+			date:   date,
 			amount: row[1],
 			payee:  row[3],
 		})

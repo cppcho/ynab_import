@@ -20,8 +20,12 @@ func (p Smbc) Parse(records [][]string) []YnabRecord {
 		if row[1] != "" {
 			amount = flipSign(row[1])
 		}
+		date, err := convertDate("2006/1/2", "2006-01-02", row[0])
+		if err != nil {
+			panic(err)
+		}
 		parsed = append(parsed, YnabRecord{
-			date:   convertDate("2006/1/2", "2006-01-02", row[0]),
+			date:   date,
 			amount: amount,
 			payee:  row[3],
 		})

@@ -23,8 +23,12 @@ func (p SmbcCard2) Parse(records [][]string) []YnabRecord {
 	for _, row := range records {
 		// if row[0] is in date format
 		if _, err := time.Parse("2006/1/2", row[0]); err == nil {
+			date, err := convertDate("2006/1/2", "2006-01-02", row[0])
+			if err != nil {
+				panic(err)
+			}
 			parsed = append(parsed, YnabRecord{
-				date:   convertDate("2006/1/2", "2006-01-02", row[0]),
+				date:   date,
 				amount: flipSign(row[5]),
 				payee:  row[1],
 			})

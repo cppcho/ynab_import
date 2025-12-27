@@ -19,8 +19,12 @@ func (p Epos) Parse(records [][]string) []YnabRecord {
 		if row[1] == "" || row[6] == "" {
 			continue
 		}
+		date, err := convertDate("2006年01月02日", "2006-01-02", row[1])
+		if err != nil {
+			panic(err)
+		}
 		parsed = append(parsed, YnabRecord{
-			date:   convertDate("2006年01月02日", "2006-01-02", row[1]),
+			date:   date,
 			amount: flipSign(row[5]),
 			payee:  row[2],
 		})

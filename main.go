@@ -85,7 +85,10 @@ func main() {
 			srcPath := path.Join(*inputDir, file.Name())
 			fmt.Printf("Parsing %v ...", srcPath)
 
-			rawRecords := readCsvToRawRecords(srcPath)
+			rawRecords, err := readCsvToRawRecords(srcPath)
+			if err != nil {
+				panic(err)
+			}
 
 			var parsed []YnabRecord
 			for _, parser := range parsers {
@@ -93,7 +96,10 @@ func main() {
 				if parsed != nil {
 					fmt.Printf("Matched parser %v\n", parser.Name())
 					dstPath := path.Join(timestampedOutputDir, parser.Name()+"_"+file.Name())
-					writeRecordsToCsv(parsed, dstPath)
+					err = writeRecordsToCsv(parsed, dstPath)
+					if err != nil {
+						panic(err)
+					}
 					fmt.Printf("Write csv to %v\n", dstPath)
 					break
 				}
@@ -106,10 +112,10 @@ func main() {
 }
 
 // 2006-01-02T15:04:05
-func convertDate(fromLayout, toLayout, value string) string {
+func convertDate(fromLayout, toLayout, value string) (string, error) {
 	date, err := time.Parse(fromLayout, value)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return date.Format(toLayout)
+	return date.Format(toLayout), nil
 }
