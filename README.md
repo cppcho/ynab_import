@@ -4,7 +4,7 @@ A Go-based CSV conversion tool that transforms bank and credit card transaction 
 
 ## Features
 
-- **10 Financial Institution Support** - Supports major Japanese banks and credit cards
+- **11 Financial Institution Support** - Supports major Japanese banks, credit cards, and transit IC cards
 - **Automatic Encoding Detection** - Handles both UTF-8 and Shift_JIS encoded CSVs
 - **Batch Processing** - Processes all CSV files in a directory at once
 - **Watch Mode** - Continuously monitor directory for new or changed CSV files
@@ -14,21 +14,25 @@ A Go-based CSV conversion tool that transforms bank and credit card transaction 
 
 ## Supported Financial Institutions
 
-| Institution | Japanese Name | Type |
-|-------------|---------------|------|
-| SMBC Bank | 三井住友銀行 | Bank |
-| Rakuten Bank | 楽天銀行 | Bank |
-| SBI Bank | 住信SBIネット銀行 | Bank |
-| SBI Shinsei Bank | SBI新生銀行 | Bank |
-| SMBC Card | 三井住友カード | Credit Card (2 formats) |
-| Rakuten Card | 楽天カード | Credit Card |
-| EPOS Card | エポスカード | Credit Card |
-| VIEW Card | ビューカード | Credit Card |
-| Saison Card | セゾンカード | Credit Card |
+| Institution | Japanese Name | Type | Format |
+|-------------|---------------|------|--------|
+| SMBC Bank | 三井住友銀行 | Bank | CSV |
+| Rakuten Bank | 楽天銀行 | Bank | CSV |
+| SBI Bank | 住信SBIネット銀行 | Bank | CSV |
+| SBI Shinsei Bank | SBI新生銀行 | Bank | CSV |
+| SMBC Card | 三井住友カード | Credit Card (2 formats) | CSV |
+| Rakuten Card | 楽天カード | Credit Card | CSV |
+| EPOS Card | エポスカード | Credit Card | CSV |
+| VIEW Card | ビューカード | Credit Card | CSV |
+| Saison Card | セゾンカード | Credit Card | CSV |
+| Mobile Suica | モバイルSuica | Transit IC Card | PDF |
 
 ## Requirements
 
 - Go 1.25 or later
+- `pdftotext` (from poppler-utils) - Required for PDF parsing (Mobile Suica)
+  - macOS: `brew install poppler`
+  - Linux: `apt-get install poppler-utils`
 
 ## Installation
 
@@ -49,7 +53,7 @@ The compiled binary will be available at `./bin/ynab_import`.
 ## Quick Start
 
 ```bash
-# Place your bank/credit card CSV exports in ~/Downloads
+# Place your bank/credit card CSV exports and PDFs in ~/Downloads
 # Run the converter
 ./bin/ynab_import
 
@@ -65,7 +69,7 @@ The compiled binary will be available at `./bin/ynab_import`.
 ```
 
 By default, the tool:
-- Reads CSV files from `~/Downloads`
+- Reads CSV and PDF files from `~/Downloads`
 - Outputs converted files to `~/Desktop/YYYYMMDD_output/`
 
 ### Custom Directories
@@ -102,10 +106,10 @@ Watch mode allows the tool to continuously monitor the input directory for new o
 ```
 
 In watch mode, the tool will:
-1. Process all existing CSV files in the input directory on startup
+1. Process all existing CSV and PDF files in the input directory on startup
 2. Continue running and monitor the directory for changes
-3. Automatically process any new CSV files added to the directory
-4. Automatically re-process CSV files when they are modified
+3. Automatically process any new CSV or PDF files added to the directory
+4. Automatically re-process files when they are modified
 5. Press `Ctrl+C` to stop watching
 
 This is useful for scenarios like:
@@ -117,9 +121,9 @@ This is useful for scenarios like:
 
 | Flag | Environment Variable | Default | Description |
 |------|---------------------|---------|-------------|
-| `-input` | `CSV_DIR_IN` | `~/Downloads` | Directory containing input CSV files |
+| `-input` | `CSV_DIR_IN` | `~/Downloads` | Directory containing input CSV and PDF files |
 | `-output` | `CSV_DIR` | `~/Desktop` | Base directory for output files |
-| `-w`, `--watch` | - | `false` | Watch mode: continuously monitor input directory for new or changed CSV files |
+| `-w`, `--watch` | - | `false` | Watch mode: continuously monitor input directory for new or changed files |
 
 ## Output Format
 
@@ -245,8 +249,9 @@ ynab_import/
 ├── smbc_card2.go        # SMBC Card parser (format 2)
 ├── view.go              # VIEW Card parser
 ├── saison.go            # Saison Card parser
+├── suica.go             # Mobile Suica parser (PDF)
 ├── *_test.go            # Test files
-├── testdata/            # Test CSV samples
+├── testdata/            # Test CSV and PDF samples
 ├── Makefile             # Build automation
 ├── go.mod               # Go module definition
 ├── CLAUDE.md            # Detailed development guidelines
@@ -255,9 +260,10 @@ ynab_import/
 
 ## How It Works
 
-1. **Scan Input Directory** - Finds all CSV files in the input directory
-2. **Try Parsers** - For each CSV, tries each registered parser in sequence
-3. **Match Headers** - Parsers check CSV headers to identify their format
+1. **Scan Input Directory** - Finds all CSV and PDF files in the input directory
+2. **Try Parsers** - For each file, tries each registered parser in sequence
+3. **Match Format** - Parsers check file headers/content to identify their format
 4. **Parse & Convert** - Matching parser converts records to YNAB format
-5. **Handle Encoding** - Automatically detects and converts Shift_JIS to UTF-8
-6. **Write Output** - Saves converted CSV to timestamped output directory
+5. **Handle Encoding** - Automatically detects and converts Shift_JIS to UTF-8 (for CSVs)
+6. **Extract PDF Text** - Extracts text from PDF files (for transit IC cards like Suica)
+7. **Write Output** - Saves converted CSV to timestamped output directory

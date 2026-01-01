@@ -35,7 +35,7 @@ type Parser interface {
 	Parse(records [][]string) (*ParseResult, error)
 }
 
-var parsers []Parser = []Parser{Smbc{}, Rakuten{}, Epos{}, View{}, Saison{}, RakutenCard{}, Sbi{}, SmbcCard{}, SmbcCard2{}, Shinsei{}}
+var parsers []Parser = []Parser{Smbc{}, Rakuten{}, Epos{}, View{}, Saison{}, RakutenCard{}, Sbi{}, SmbcCard{}, SmbcCard2{}, Shinsei{}, Suica{}}
 
 func flipSign(str string) string {
 	// Remove commas
@@ -85,6 +85,11 @@ func expandHomeDir(path string) string {
 }
 
 func processFile(filePath, outputDir string) error {
+	// Check if this is a PDF file
+	if strings.HasSuffix(filePath, ".pdf") {
+		return processPDFFile(filePath, outputDir)
+	}
+
 	fmt.Printf("Parsing %v ...", filePath)
 
 	rawRecords, err := readCsvToRawRecords(filePath)
@@ -137,6 +142,54 @@ func processFile(filePath, outputDir string) error {
 	return nil // Not an error - just no parser matched
 }
 
+func processPDFFile(filePath, outputDir string) error {
+	fmt.Printf("Parsing %v ...", filePath)
+
+	fileName := path.Base(filePath)
+	baseName := strings.TrimSuffix(fileName, ".pdf") + ".csv"
+
+	// Try Suica parser (currently only PDF parser)
+	suicaParser := Suica{}
+	parsed, err := suicaParser.ParsePDF(filePath)
+
+	// Error occurred during parsing
+	if err != nil {
+		return fmt.Errorf("parser %s failed: %w", suicaParser.Name(), err)
+	}
+
+	// No match (not this parser's format)
+	if parsed == nil {
+		fmt.Println(" No matched parser")
+		return nil
+	}
+
+	// Match found - write output
+	fmt.Printf(" Matched parser %v\n", suicaParser.Name())
+	dstPath := path.Join(outputDir, suicaParser.Name()+"_"+baseName)
+
+	if err := writeRecordsToCsv(parsed.ValidRecords, dstPath); err != nil {
+		return fmt.Errorf("failed to write output: %w", err)
+	}
+
+	// Display statistics
+	fmt.Printf("Converted %d row(s)", len(parsed.ValidRecords))
+	if len(parsed.SkippedRows) > 0 {
+		fmt.Printf(", skipped %d row(s)", len(parsed.SkippedRows))
+	}
+	fmt.Printf("\n")
+
+	// Display skipped rows with details
+	if len(parsed.SkippedRows) > 0 {
+		for _, skipped := range parsed.SkippedRows {
+			fmt.Fprintf(os.Stderr, "Skipped row %d: %v (reason: %s)\n",
+				skipped.RowNumber, skipped.RawData, skipped.Reason)
+		}
+	}
+
+	fmt.Printf("Wrote to %v\n", dstPath)
+	return nil // Success
+}
+
 func processDirectory(inputDir, outputDir string) error {
 	files, err := os.ReadDir(inputDir)
 	if err != nil {
@@ -144,7 +197,7 @@ func processDirectory(inputDir, outputDir string) error {
 	}
 
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
+		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".csv") || strings.HasSuffix(file.Name(), ".pdf")) {
 			srcPath := path.Join(inputDir, file.Name())
 			if err := processFile(srcPath, outputDir); err != nil {
 				fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", srcPath, err)
@@ -183,7 +236,7 @@ func watchMode(inputDir, outputDir string) error {
 			}
 			// Process on write or create events
 			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
-				if strings.HasSuffix(event.Name, ".csv") {
+				if strings.HasSuffix(event.Name, ".csv") || strings.HasSuffix(event.Name, ".pdf") {
 					fmt.Printf("\nDetected change: %s\n", event.Name)
 					if err := processFile(event.Name, outputDir); err != nil {
 						fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", event.Name, err)
@@ -241,7 +294,7 @@ func run() error {
 	successCount := 0
 
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".csv") {
+		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".csv") || strings.HasSuffix(file.Name(), ".pdf")) {
 			srcPath := path.Join(*inputDir, file.Name())
 
 			if err := processFile(srcPath, timestampedOutputDir); err != nil {
