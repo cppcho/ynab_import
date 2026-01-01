@@ -4,7 +4,7 @@ A Go-based CSV conversion tool that transforms bank and credit card transaction 
 
 ## Features
 
-- **11 Financial Institution Support** - Supports major Japanese banks, credit cards, and transit IC cards
+- **12 Financial Institution Support** - Supports major Japanese banks, credit cards, transit IC cards, and e-money services
 - **Automatic Encoding Detection** - Handles both UTF-8 and Shift_JIS encoded CSVs
 - **Batch Processing** - Processes all CSV files in a directory at once
 - **Watch Mode** - Continuously monitor directory for new or changed CSV files
@@ -26,6 +26,7 @@ A Go-based CSV conversion tool that transforms bank and credit card transaction 
 | VIEW Card | ビューカード | Credit Card | CSV |
 | Saison Card | セゾンカード | Credit Card | CSV |
 | Mobile Suica | モバイルSuica | Transit IC Card | PDF |
+| PayPay | PayPay | E-money | CSV |
 
 ## Requirements
 
