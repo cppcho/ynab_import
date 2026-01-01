@@ -4,7 +4,7 @@ A Go-based CSV conversion tool that transforms bank and credit card transaction 
 
 ## Features
 
-- **9 Financial Institution Support** - Supports major Japanese banks and credit cards
+- **10 Financial Institution Support** - Supports major Japanese banks and credit cards
 - **Automatic Encoding Detection** - Handles both UTF-8 and Shift_JIS encoded CSVs
 - **Batch Processing** - Processes all CSV files in a directory at once
 - **Watch Mode** - Continuously monitor directory for new or changed CSV files
@@ -19,6 +19,7 @@ A Go-based CSV conversion tool that transforms bank and credit card transaction 
 | SMBC Bank | 三井住友銀行 | Bank |
 | Rakuten Bank | 楽天銀行 | Bank |
 | SBI Bank | 住信SBIネット銀行 | Bank |
+| SBI Shinsei Bank | SBI新生銀行 | Bank |
 | SMBC Card | 三井住友カード | Credit Card (2 formats) |
 | Rakuten Card | 楽天カード | Credit Card |
 | EPOS Card | エポスカード | Credit Card |
@@ -238,6 +239,7 @@ ynab_import/
 ├── rakuten.go           # Rakuten Bank parser
 ├── epos.go              # EPOS Card parser
 ├── sbi.go               # SBI Bank parser
+├── shinsei.go           # SBI Shinsei Bank parser
 ├── rakuten_card.go      # Rakuten Card parser
 ├── smbc_card.go         # SMBC Card parser (format 1)
 ├── smbc_card2.go        # SMBC Card parser (format 2)

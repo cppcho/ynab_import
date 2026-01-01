@@ -35,7 +35,7 @@ type Parser interface {
 	Parse(records [][]string) (*ParseResult, error)
 }
 
-var parsers []Parser = []Parser{Smbc{}, Rakuten{}, Epos{}, View{}, Saison{}, RakutenCard{}, Sbi{}, SmbcCard{}, SmbcCard2{}}
+var parsers []Parser = []Parser{Smbc{}, Rakuten{}, Epos{}, View{}, Saison{}, RakutenCard{}, Sbi{}, SmbcCard{}, SmbcCard2{}, Shinsei{}}
 
 func flipSign(str string) string {
 	// Remove commas
