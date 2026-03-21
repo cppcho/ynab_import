@@ -86,8 +86,8 @@ func expandHomeDir(path string) string {
 
 func processFile(filePath, outputDir string) error {
 	// Check if this is a PDF file
-	if strings.HasSuffix(filePath, ".pdf") {
-		return processPDFFile(filePath, outputDir)
+	if strings.HasSuffix(filePath, ".mhtml") {
+		return processMHTMLFile(filePath, outputDir)
 	}
 
 	fmt.Printf("Parsing %v ...", filePath)
@@ -142,15 +142,15 @@ func processFile(filePath, outputDir string) error {
 	return nil // Not an error - just no parser matched
 }
 
-func processPDFFile(filePath, outputDir string) error {
+func processMHTMLFile(filePath, outputDir string) error {
 	fmt.Printf("Parsing %v ...", filePath)
 
 	fileName := path.Base(filePath)
-	baseName := strings.TrimSuffix(fileName, ".pdf") + ".csv"
+	baseName := strings.TrimSuffix(fileName, ".mhtml") + ".csv"
 
-	// Try Suica parser (currently only PDF parser)
+	// Try Suica parser (currently only MHTML parser)
 	suicaParser := Suica{}
-	parsed, err := suicaParser.ParsePDF(filePath)
+	parsed, err := suicaParser.ParseMHTML(filePath)
 
 	// Error occurred during parsing
 	if err != nil {
@@ -197,7 +197,7 @@ func processDirectory(inputDir, outputDir string) error {
 	}
 
 	for _, file := range files {
-		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".csv") || strings.HasSuffix(file.Name(), ".pdf")) {
+		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".csv") || strings.HasSuffix(file.Name(), ".mhtml")) {
 			srcPath := path.Join(inputDir, file.Name())
 			if err := processFile(srcPath, outputDir); err != nil {
 				fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", srcPath, err)
@@ -236,7 +236,7 @@ func watchMode(inputDir, outputDir string) error {
 			}
 			// Process on write or create events
 			if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
-				if strings.HasSuffix(event.Name, ".csv") || strings.HasSuffix(event.Name, ".pdf") {
+				if strings.HasSuffix(event.Name, ".csv") || strings.HasSuffix(event.Name, ".mhtml") {
 					fmt.Printf("\nDetected change: %s\n", event.Name)
 					if err := processFile(event.Name, outputDir); err != nil {
 						fmt.Fprintf(os.Stderr, "Error processing %s: %v\n", event.Name, err)
@@ -294,7 +294,7 @@ func run() error {
 	successCount := 0
 
 	for _, file := range files {
-		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".csv") || strings.HasSuffix(file.Name(), ".pdf")) {
+		if !file.IsDir() && (strings.HasSuffix(file.Name(), ".csv") || strings.HasSuffix(file.Name(), ".mhtml")) {
 			srcPath := path.Join(*inputDir, file.Name())
 
 			if err := processFile(srcPath, timestampedOutputDir); err != nil {

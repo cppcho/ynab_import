@@ -25,15 +25,12 @@ A Go-based CSV conversion tool that transforms bank and credit card transaction 
 | EPOS Card | エポスカード | Credit Card | CSV |
 | VIEW Card | ビューカード | Credit Card | CSV |
 | Saison Card | セゾンカード | Credit Card | CSV |
-| Mobile Suica | モバイルSuica | Transit IC Card | PDF |
+| Mobile Suica | モバイルSuica | Transit IC Card | MHTML |
 | PayPay | PayPay | E-money | CSV |
 
 ## Requirements
 
 - Go 1.25 or later
-- `pdftotext` (from poppler-utils) - Required for PDF parsing (Mobile Suica)
-  - macOS: `brew install poppler`
-  - Linux: `apt-get install poppler-utils`
 
 ## Installation
 
@@ -54,7 +51,7 @@ The compiled binary will be available at `./bin/ynab_import`.
 ## Quick Start
 
 ```bash
-# Place your bank/credit card CSV exports and PDFs in ~/Downloads
+# Place your bank/credit card CSV/MHTML exports in ~/Downloads
 # Run the converter
 ./bin/ynab_import
 
@@ -70,7 +67,7 @@ The compiled binary will be available at `./bin/ynab_import`.
 ```
 
 By default, the tool:
-- Reads CSV and PDF files from `~/Downloads`
+- Reads CSV and MHTML files from `~/Downloads`
 - Outputs converted files to `~/Desktop/YYYYMMDD_output/`
 
 ### Custom Directories
@@ -107,9 +104,9 @@ Watch mode allows the tool to continuously monitor the input directory for new o
 ```
 
 In watch mode, the tool will:
-1. Process all existing CSV and PDF files in the input directory on startup
+1. Process all existing CSV and MHTML files in the input directory on startup
 2. Continue running and monitor the directory for changes
-3. Automatically process any new CSV or PDF files added to the directory
+3. Automatically process any new CSV or MHTML files added to the directory
 4. Automatically re-process files when they are modified
 5. Press `Ctrl+C` to stop watching
 
@@ -122,7 +119,7 @@ This is useful for scenarios like:
 
 | Flag | Environment Variable | Default | Description |
 |------|---------------------|---------|-------------|
-| `-input` | `CSV_DIR_IN` | `~/Downloads` | Directory containing input CSV and PDF files |
+| `-input` | `CSV_DIR_IN` | `~/Downloads` | Directory containing input CSV and MHTML files |
 | `-output` | `CSV_DIR` | `~/Desktop` | Base directory for output files |
 | `-w`, `--watch` | - | `false` | Watch mode: continuously monitor input directory for new or changed files |
 
@@ -250,9 +247,9 @@ ynab_import/
 ├── smbc_card2.go        # SMBC Card parser (format 2)
 ├── view.go              # VIEW Card parser
 ├── saison.go            # Saison Card parser
-├── suica.go             # Mobile Suica parser (PDF)
+├── suica.go             # Mobile Suica parser (MHTML)
 ├── *_test.go            # Test files
-├── testdata/            # Test CSV and PDF samples
+├── testdata/            # Test CSV and MHTML samples
 ├── Makefile             # Build automation
 ├── go.mod               # Go module definition
 ├── CLAUDE.md            # Detailed development guidelines
@@ -261,10 +258,10 @@ ynab_import/
 
 ## How It Works
 
-1. **Scan Input Directory** - Finds all CSV and PDF files in the input directory
+1. **Scan Input Directory** - Finds all CSV and MHTML files in the input directory
 2. **Try Parsers** - For each file, tries each registered parser in sequence
 3. **Match Format** - Parsers check file headers/content to identify their format
 4. **Parse & Convert** - Matching parser converts records to YNAB format
 5. **Handle Encoding** - Automatically detects and converts Shift_JIS to UTF-8 (for CSVs)
-6. **Extract PDF Text** - Extracts text from PDF files (for transit IC cards like Suica)
+6. **Parse MHTML** - Decodes quoted-printable Shift_JIS HTML for transit IC cards (Suica)
 7. **Write Output** - Saves converted CSV to timestamped output directory
