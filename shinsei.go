@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"strings"
 )
 
 type Shinsei struct{}
@@ -16,23 +17,15 @@ func (p Shinsei) Parse(records [][]string) (*ParseResult, error) {
 		return nil, nil // Not my format
 	}
 
-	// Check for both quoted and unquoted header formats
-	// Also handle BOM on first field
-	validHeaders := [][]string{
-		{"取引日", "摘要", "出金金額", "入金金額", "残高"},
-		{"\"取引日\"", "\"摘要\"", "\"出金金額\"", "\"入金金額\"", "\"残高\""},
-		{"\ufeff\"取引日\"", "摘要", "出金金額", "入金金額", "残高"},
+	// Newer exports add a trailing メモ column, and may carry a BOM and
+	// literal quotes on the first field.
+	header := make([]string, len(records[0]))
+	for i, h := range records[0] {
+		header[i] = strings.Trim(strings.TrimPrefix(h, "\ufeff"), "\"")
 	}
-
-	matched := false
-	for _, headers := range validHeaders {
-		if reflect.DeepEqual(records[0], headers) {
-			matched = true
-			break
-		}
-	}
-
-	if !matched {
+	baseHeaders := []string{"取引日", "摘要", "出金金額", "入金金額", "残高"}
+	if !reflect.DeepEqual(header, baseHeaders) &&
+		!reflect.DeepEqual(header, append(baseHeaders, "メモ")) {
 		return nil, nil
 	}
 

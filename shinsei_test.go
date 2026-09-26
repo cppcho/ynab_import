@@ -138,3 +138,32 @@ func TestShinsei_Parse_AmountHandling(t *testing.T) {
 		})
 	}
 }
+
+func TestShinsei_Parse_MemoColumnWithBOM(t *testing.T) {
+	records, err := readCsvToRawRecords("testdata/parsers/shinsei_memo.csv")
+	if err != nil {
+		t.Fatalf("readCsvToRawRecords() error = %v", err)
+	}
+
+	result, err := Shinsei{}.Parse(records)
+	if err != nil {
+		t.Fatalf("Parse() unexpected error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("Parse() returned nil for Shinsei CSV with メモ column")
+	}
+	if len(result.ValidRecords) != 3 {
+		t.Fatalf("Parse() returned %d records, want 3", len(result.ValidRecords))
+	}
+
+	want := []YnabRecord{
+		{date: "2026-09-25", memo: "振込 ﾃｽﾄ", amount: "100000"},
+		{date: "2026-09-01", memo: "地方税", amount: "-7"},
+		{date: "2026-08-26", memo: "住宅ローン（約定返済）", amount: "-104468"},
+	}
+	for i, w := range want {
+		if result.ValidRecords[i] != w {
+			t.Errorf("Record[%d] = %+v, want %+v", i, result.ValidRecords[i], w)
+		}
+	}
+}
