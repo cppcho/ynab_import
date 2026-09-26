@@ -186,11 +186,17 @@ func (p Suica) parseMHTMLTransactions(html string, year int) (*ParseResult, erro
 			continue
 		}
 
-		transType := strings.TrimSpace(cells[2])
+		// A leading ＊ marks a fare Suica adjusted (e.g. a transfer discount);
+		// the transaction itself is an ordinary one of the same type.
+		transType := strings.TrimPrefix(strings.TrimSpace(cells[2]), "＊")
 		var payee, memo string
 
 		if transType == "物販" {
 			payee = "物販"
+		} else if transType == "購" {
+			// Ticket bought at a station
+			payee = "交通"
+			memo = strings.TrimSpace(cells[3])
 		} else if transType == "入" {
 			payee = "交通"
 			fromStation := strings.TrimSpace(cells[3])
