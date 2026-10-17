@@ -150,7 +150,7 @@ func TestExtractYearFromMHTML(t *testing.T) {
 	}
 }
 
-func TestSuica_ParseMHTMLTransactions_TicketAndAdjustedFare(t *testing.T) {
+func TestSuica_ParseMHTMLTransactions_TicketBusAndAdjustedFare(t *testing.T) {
 	row := func(cells ...string) string {
 		html := "<tr>"
 		for _, c := range cells {
@@ -159,7 +159,8 @@ func TestSuica_ParseMHTMLTransactions_TicketAndAdjustedFare(t *testing.T) {
 		return html + "</tr>"
 	}
 	html := row("", "09/03", "購", "京王橋本", "", "", "\\7,338", "-410") +
-		row("", "08/06", "＊入", "地青山一", "出", "地　渋谷", "\\8,518", "-108")
+		row("", "08/06", "＊入", "地青山一", "出", "地　渋谷", "\\8,518", "-108") +
+		row("", "10/11", "ﾊﾞｽ等", "神姫バス", "", "", "\\15,100", "-230")
 
 	result, err := Suica{}.parseMHTMLTransactions(html, 2026)
 	if err != nil {
@@ -172,6 +173,7 @@ func TestSuica_ParseMHTMLTransactions_TicketAndAdjustedFare(t *testing.T) {
 	want := []YnabRecord{
 		{date: "2026-09-03", payee: "交通", memo: "京王橋本", amount: "-410"},
 		{date: "2026-08-06", payee: "交通", memo: "地青山一 -> 地　渋谷", amount: "-108"},
+		{date: "2026-10-11", payee: "交通", memo: "神姫バス", amount: "-230"},
 	}
 	if len(result.ValidRecords) != len(want) {
 		t.Fatalf("got %d records, want %d", len(result.ValidRecords), len(want))

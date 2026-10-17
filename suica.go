@@ -193,8 +193,9 @@ func (p Suica) parseMHTMLTransactions(html string, year int) (*ParseResult, erro
 
 		if transType == "物販" {
 			payee = "物販"
-		} else if transType == "購" {
-			// Ticket bought at a station
+		} else if transType == "購" || transType == "ﾊﾞｽ等" {
+			// Ticket bought at a station, or a bus fare; cells[3] names the
+			// station or the bus operator
 			payee = "交通"
 			memo = strings.TrimSpace(cells[3])
 		} else if transType == "入" {
